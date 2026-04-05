@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<sub-flow name="sfdc-get-contact-subflow" doc:id="cc753749-4bf9-440c-ab5b-9f011b290cff" >
+		<ee:transform doc:name="logParams" doc:id="1d9114e2-5d29-4ceb-8ca9-70116e4a4958" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="logParams" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"tracepoint": "Sub Flow Entry",
+	"source": flow.name,
+	"message": "Fetch customer contacts information from System API",
+	"parameters": {
+		"Retrieved DateTime from OS": (vars.lastRunDateTime default "N/A")	
+	}
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="LOG: Entry" doc:id="e2ac1f97-5b24-4d11-b5fd-75369981a38d" name="info-logging-subflow" />
+		<http:request doc:name="sys api call" doc:id="6c43052f-e3d1-40be-9b13-7da2a49f2829" config-ref="http_request_config" path="${sdfc-sys.path}" sendCorrelationId="ALWAYS" correlationId="#[vars.correlationId]" responseTimeout="${response.timeout}">
+			<http:headers ><![CDATA[#[{
+	"client_id": Mule::p('sdfc-sys.clientId'),
+	"client_secret": Mule::p('sdfc-sys.clientSecret')
+}]]]></http:headers>
+			<http:query-params ><![CDATA[#[{
+	"lastModifiedDateTime": vars.lastRunDateTime
+}]]]></http:query-params>
+		</http:request>
+		<choice doc:name="CHECK IF: payload exist" doc:id="2a64d779-b72e-4f60-8a81-f167288e04d0" >
+			<when expression="#[!isEmpty(payload)]">
+				<ee:transform doc:name="logParams" doc:id="7d52e500-5145-4b25-b3fd-6ac5d70b053d">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="logParams"><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"tracepoint": "Sub Flow Exit",
+	"source": flow.name,
+	"message": "Fetched customer contacts information from System API",
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+				<flow-ref doc:name="LOG: Exit" doc:id="cfff74da-f2d3-4254-9371-192aa89405ba" name="info-logging-subflow" />
+				<flow-ref doc:name="publishe-contact-message-subflow" doc:id="3549303e-3b12-4f48-93ab-fae7daf98e09" name="publishe-contact-message-subflow"/>
+				<os:store doc:name="currentRunDateTime" doc:id="9765d9ba-011d-42db-9c72-01ad8d4d9434" key="${os.key}" >
+					<os:value ><![CDATA[#[vars.currentRunDateTime]]]></os:value>
+				</os:store>
+				<ee:transform doc:name="logParams" doc:id="bda1e5f9-5427-4b05-a386-43cbdd5f7227" >
+					<ee:message />
+					<ee:variables >
+						<ee:set-variable variableName="logParams" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"tracepoint": "Info Log",
+	"source": flow.name,
+	"parameters": {
+		"Retrieved DateTime from OS for current run": (vars.lastRunDateTime default "N/A"),
+		"Updated DateTime in OS for next run": (vars.currentRunDateTime default "N/A"),
+	}
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<flow-ref doc:name="LOG: Info" doc:id="0931ac70-7d3f-4701-81a9-0424913308cd" name="info-logging-subflow" />
+			</when>
+			<otherwise >
+				<ee:transform doc:name="logParams" doc:id="70844f3b-42e6-4c70-9a34-8b515bd8d995" >
+					<ee:message />
+					<ee:variables >
+						<ee:set-variable variableName="logParams" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"tracepoint": "Sub Flow Exit",
+	"source": flow.name,
+	"message": "No records from System API for the last modified DateTime: " ++ (vars.lastRunDateTime default "N/A")
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<flow-ref doc:name="LOG: Exit" doc:id="8c3d671e-3df9-463e-9eb6-5b78bce761fb" name="info-logging-subflow" />
+			</otherwise>
+		</choice>
+	</sub-flow>
+</mule>

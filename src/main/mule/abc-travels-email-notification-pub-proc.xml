@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<flow name="abc-travels-email-notification-pub-flow" doc:id="e49101fa-5d86-4647-8e66-bdb6457d5eed" >
+		<scheduler doc:name="Run every 30 minutes" doc:id="91b6e038-0493-4f7a-ba49-3e6142d5b57b" >
+			<scheduling-strategy >
+				<cron expression="${scheduler.cron.expression}" timeZone="${timezone}" />
+			</scheduling-strategy>
+		</scheduler>
+		<ee:transform doc:name="correlationId, logParams" doc:id="d4b3c1d6-0bae-45fc-afcd-b7914e3670e2" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="logParams" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"tracepoint": "Scheduler Entry",
+	"source": flow.name
+}]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId" ><![CDATA[%dw 2.0
+output application/json
+---
+correlationId]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="LOG: Entry" doc:id="47ac0ec8-b1c4-483e-b9e7-a895904e2698" name="info-logging-subflow" />
+		<ee:transform doc:name="currentRunDateTime" doc:id="de8d76c8-2fe6-4970-9e99-78fba21bb59f" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable resource="dwl/current_run_date_time.dwl" variableName="currentRunDateTime" />
+			</ee:variables>
+		</ee:transform>
+		<os:retrieve doc:name="lastRunDateTime" doc:id="beaf27f4-f083-4cd6-8417-d5b986a5962c" key="${os.key}" target="lastRunDateTime" >
+			<os:default-value ><![CDATA[#[%dw 2.0
+output application/json
+---
+((now() - |PT5M|) as DateTime >> Mule::p('timezone')) as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}]]]></os:default-value>
+		</os:retrieve>
+		<flow-ref doc:name="sfdc-get-contact-subflow" doc:id="ec48146b-af49-485f-866b-d73273209803" name="sfdc-get-contact-subflow"/>
+		<ee:transform doc:name="logParams" doc:id="735e65e8-5160-4590-ae44-35b6ff1ab4d2" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="logParams" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"tracepoint": "Scheduler Exit",
+	"source": flow.name
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="LOG: Exit" doc:id="be50ac0c-ec4a-4af1-b550-4713dc61e7cd" name="info-logging-subflow" />
+		<error-handler ref="global-error-handler" />
+	</flow>
+</mule>

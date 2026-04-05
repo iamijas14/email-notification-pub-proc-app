@@ -1,0 +1,17 @@
+connection:
+  timeout: "60000"
+response:
+  timeout: "90000"
+
+retry:
+  count: "3"
+  frequency: "5000"
+
+scheduler:
+  cron:
+    expression: "0 0/30 0 ? * * *"
+  
+os:
+  key: "lastRunDateTime"
+  
+timezone: "UTC"

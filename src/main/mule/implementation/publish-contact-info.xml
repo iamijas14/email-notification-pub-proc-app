@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
+	<sub-flow name="publishe-contact-message-subflow" doc:id="fd0b460c-ba8e-4df5-b518-f81ffae7c005" >
+		<ee:transform doc:name="logParams" doc:id="79c2a22a-04ef-48ca-b0d1-43758b8dd491">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="logParams"><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"tracepoint": "Sub Flow Entry",
+	"source": flow.name,
+	"message": "Publish contacts to RabbitMq exchange: " ++ (Mule::p('rabbitmq.exchangeName') default ""),
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="LOG: Entry" doc:id="215debc1-c581-4bac-b9da-d398e067dc91" name="info-logging-subflow" />
+		<foreach doc:name="For Each" doc:id="cf2eec5b-7118-43b6-8e88-ab5d6c661e64" collection="#[payload]">
+			<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" doc:name="currentData" doc:id="d3e1a98c-dbc6-4351-9fd6-89086613e19d" variableName="currentData"/>
+			<until-successful maxRetries="5" doc:name="Until Successful" doc:id="2567f524-3af3-4ce9-9372-000385e42c4c" >
+				<try doc:name="Try" doc:id="9ace5520-7d40-40e1-934c-72d29c981b44">
+				<json:validate-schema doc:name="contact validate schema" doc:id="d958960f-a628-4296-be2e-ec13d32a3b3e" schema="schemas/contact-validator.json" />
+				<amqp:publish doc:name="publish to rabbitmq" doc:id="e399df9d-b1ab-47da-a2b2-28fe9a0fc40a" config-ref="rabbitmq_Config" exchangeName="${rabbitmq.exchangeName}" sendCorrelationId="ALWAYS">
+					<amqp:message>
+						<amqp:properties correlationId="#[vars.correlationId]" />
+					</amqp:message>
+				</amqp:publish>
+				<error-handler>
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="a8e3533d-4f4b-42f4-b65a-e70fe042b9f0" type="AMQP:CONNECTIVITY">
+							<ee:transform doc:name="error" doc:id="902ba4cb-18a8-4475-8ed3-8f8662908f69" >
+								<ee:message />
+								<ee:variables >
+									<ee:set-variable resource="dwl/error/error_response.dwl" variableName="error" />
+								</ee:variables>
+							</ee:transform>
+						</on-error-propagate>
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="758002a4-f8fe-4b7a-818e-9d0d44f84e7e" type="JSON:SCHEMA_NOT_HONOURED">
+						<ee:transform doc:name="error payload" doc:id="f9fb22ba-5012-4259-b693-797b815dd916">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+error.errorMessage.payload
+map ((item, index) -> {
+	"ContactId": (vars.currentData.Id default "N/A"),
+	"fieldName": item.instance.pointer,
+	"error": item.message
+})]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<ee:transform doc:name="logParams" doc:id="236dff18-f612-4663-9f44-760ab7a997e7">
+							<ee:message />
+							<ee:variables>
+								<ee:set-variable variableName="logParams"><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"tracepoint": "Error Handler",
+	"source": flow.name,
+	"message": "Json schema validation error",
+	"errorDetails": payload
+}]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+						<flow-ref doc:name="LOG: ERROR" doc:id="b3262821-21ab-4adb-9f1a-f6a4f93d21c6" name="error-logging-subflow" />
+					</on-error-continue>
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="37af513c-5964-4307-b418-2b09af45134f" type="ANY">
+						<ee:transform doc:name="httpStatus" doc:id="f747b221-fab6-4ebb-ae27-ee276fc63e88">
+							<ee:message />
+							<ee:variables>
+								<ee:set-variable resource="dwl/error/error_status_code.dwl" variableName="httpStatus" />
+							</ee:variables>
+						</ee:transform>
+						<flow-ref doc:name="prepare-error-response-subflow" doc:id="00f68953-b9d1-4c1b-a755-97f16bc2f976" name="prepare-error-response-subflow" />
+					</on-error-continue>
+				</error-handler>
+			</try>
+			</until-successful>
+			<ee:transform doc:name="logParams" doc:id="35d9f5d9-75fa-413a-9a07-1e769039bb24">
+					<ee:message />
+					<ee:variables>
+						<ee:set-variable variableName="logParams"><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"tracepoint": "Info Log",
+	"source": flow.name,
+	"message": "Message published to RabbitMQ",
+	"parameters": {
+		"ContactId": (vars.currentData.Id default "N/A")
+	}	
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			<flow-ref doc:name="LOG: Info" doc:id="e3ce5600-b170-40b5-bfa7-84a28608d1ef" name="info-logging-subflow" />
+		</foreach>
+		<ee:transform doc:name="logParams" doc:id="3a6785be-e2de-4ae1-a386-68dcf0606711" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="logParams" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"tracepoint": "Sub Flow Exit",
+	"source": flow.name
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="LOG: Exit" doc:id="3ec2207e-37e9-49da-9d2f-ee3ef1adb0a4" name="info-logging-subflow" />
+	</sub-flow>
+</mule>
