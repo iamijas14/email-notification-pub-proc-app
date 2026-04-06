@@ -7,9 +7,9 @@ var errorMessage = Error::message(error)
 ---
 {
 	"errorType": errorResponse.error,
-	"statusCode": if (!isEmpty(errorResponse.statusCode)) (errorResponse.statusCode) else vars.httpStatus,
+	"statusCode": if (!isEmpty(errorResponse.statusCode)) (errorResponse.statusCode) else 500,
 	"errorMessage": errorMessage,
 	"extraDetails": if (!isEmpty(errorResponse.errorDetails)) (errorResponse.errorDetails)
 			else if (!isEmpty(error.errorMessage.payload)) (error.errorMessage.payload)
-			else error.detailedDescription
+			else null
 }

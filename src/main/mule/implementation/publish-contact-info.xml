@@ -27,7 +27,7 @@ output application/json
 		<flow-ref doc:name="LOG: Entry" doc:id="215debc1-c581-4bac-b9da-d398e067dc91" name="info-logging-subflow" />
 		<foreach doc:name="For Each" doc:id="cf2eec5b-7118-43b6-8e88-ab5d6c661e64" collection="#[payload]">
 			<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" doc:name="currentData" doc:id="d3e1a98c-dbc6-4351-9fd6-89086613e19d" variableName="currentData"/>
-			<until-successful maxRetries="5" doc:name="Until Successful" doc:id="2567f524-3af3-4ce9-9372-000385e42c4c" >
+			<until-successful maxRetries="${retry.count}" doc:name="Until Successful" doc:id="2567f524-3af3-4ce9-9372-000385e42c4c" millisBetweenRetries="${retry.frequency}">
 				<try doc:name="Try" doc:id="9ace5520-7d40-40e1-934c-72d29c981b44">
 				<json:validate-schema doc:name="contact validate schema" doc:id="d958960f-a628-4296-be2e-ec13d32a3b3e" schema="schemas/contact-validator.json" />
 				<amqp:publish doc:name="publish to rabbitmq" doc:id="e399df9d-b1ab-47da-a2b2-28fe9a0fc40a" config-ref="rabbitmq_Config" exchangeName="${rabbitmq.exchangeName}" sendCorrelationId="ALWAYS">
@@ -95,7 +95,9 @@ output application/json
 {
 	"tracepoint": "Info Log",
 	"source": flow.name,
-	"message": "Message published to RabbitMQ",
+	"message": if(!isEmpty(payload.errorType)) "Error occurred when publishing message to RabbitMQ" 
+				else if(!isEmpty(payload.error)) "Validation error occurred" 
+				else "Message published to RabbitMQ",
 	"parameters": {
 		"ContactId": (vars.currentData.Id default "N/A")
 	}	

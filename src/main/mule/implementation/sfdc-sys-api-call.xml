@@ -45,6 +45,9 @@ output application/json
 	"tracepoint": "Sub Flow Exit",
 	"source": flow.name,
 	"message": "Fetched customer contacts information from System API",
+	"parameters": {
+		"Count of records retrieved": sizeOf(payload)
+	}
 }]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>

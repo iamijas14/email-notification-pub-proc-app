@@ -22,7 +22,7 @@ var errorResponse = Error::response(error)
 var errorMessage = Error::message(error)
 ---
 if(!isEmpty(vars.error))
-vars.error
+{"ContactId": vars.currentData.Id default null} ++ vars.error
 else
 {
 	"ContactId": vars.currentData.Id default null,
@@ -31,7 +31,7 @@ else
 	"errorMessage": errorMessage,
 	"extraDetails": if (!isEmpty(errorResponse.errorDetails)) (errorResponse.errorDetails)
 			else if (!isEmpty(error.errorMessage.payload)) (error.errorMessage.payload)
-			else error.detailedDescription
+			else null
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
