@@ -9,7 +9,7 @@ retry:
 
 scheduler:
   cron:
-    expression: "0 0/30 0 ? * * *"
+    expression: "*/30 * * * *"
   
 os:
   key: "lastRunDateTime"
