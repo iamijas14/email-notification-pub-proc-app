@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="publish-contact-info-test-suite.xml" />
+	<munit:test name="publish-contact-info-subflow-retry-error-test" doc:id="ec1eafb8-2cfa-4471-844b-ce574b599b5f" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="mock amqp" doc:id="df545398-d426-402b-9782-a9b744075ba3" processor="amqp:publish">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="e399df9d-b1ab-47da-a2b2-28fe9a0fc40a" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="AMQP:CONNECTIVITY" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="payload" doc:id="6ddffd33-add2-41db-a9ef-ffcd05247d70" >
+				<munit:payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;readUrl('classpath:///sys/salesforce_contact_response.dwl')]" encoding="UTF-8" mediaType="application/json" />
+			</munit:set-event>
+			<try doc:name="Try" doc:id="2fe295f1-4247-48e6-a45b-375354a86698" >
+				<flow-ref doc:name="Flow-ref to publishe-contact-message-subflow" doc:id="f78790e0-7c97-41cf-b9cc-a4ef0adc4a8c" name="publishe-contact-message-subflow" />
+				<error-handler >
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="2fb16006-1d4e-419f-ae50-5c15f39c071b" >
+						<logger level="INFO" doc:name="Exception" doc:id="cb25d9f5-60ea-43c8-a0f0-936461e3f0b3" />
+					</on-error-continue>
+				</error-handler>
+			</try>
+		</munit:execution>
+	</munit:test>
+	<munit:test name="publish-contact-info-subflow-validation-error-test" doc:id="657974f6-033b-469b-860d-0410d80e7a4a" description="Test" >
+		<munit:execution >
+			<munit:set-event doc:name="payload" doc:id="7a7e6af6-1dc1-4811-a4fa-a8b92d96ea4c" >
+				<munit:payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;readUrl('classpath:///sys/salesforce_contact_invalid_record.dwl')]" encoding="UTF-8" mediaType="application/json" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to publishe-contact-message-subflow" doc:id="f66a7e13-8ace-46b5-a629-be8a59d5b478" name="publishe-contact-message-subflow" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Error" doc:id="4261772b-8080-4a63-9b75-f9eecd3ab9c4" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="b3262821-21ab-4adb-9f1a-f6a4f93d21c6" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="publish-contact-info-subflow-non-retry-error-test" doc:id="4925fa95-6ba7-48b7-9e5b-7229e40d7a8c" description="Test" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="mock amqp" doc:id="16bc3efa-8691-4d90-86cd-2ac0ca4af1d6" processor="amqp:publish" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="e399df9d-b1ab-47da-a2b2-28fe9a0fc40a" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="ANY" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="payload" doc:id="7f59d225-a77c-4da9-9b5f-0d83820a24de" >
+				<munit:payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;readUrl('classpath:///sys/salesforce_contact_response.dwl')]" encoding="UTF-8" mediaType="application/json" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to publishe-contact-message-subflow" doc:id="bb88a33f-45c4-4be5-ac65-31a68645c910" name="publishe-contact-message-subflow" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Error" doc:id="aa19bde4-d6a3-4a22-b5ba-e3ae78beb762" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="8bc8bd6e-5ae5-4b34-9301-95b35a3e7b48" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

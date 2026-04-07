@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="abc-travels-email-notification-pub-proc-test-suite.xml" />
+	<munit:test name="email-notification-pub-proc-main-flow-test" doc:id="067d2660-7715-4c7d-b7cc-14e61476c64a" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="mock os" doc:id="17a7665b-92f8-4e2f-9e34-fa6f6ec82873" processor="os:retrieve">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="beaf27f4-f083-4cd6-8417-d5b986a5962c" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:variables >
+						<munit-tools:variable key="lastRunDateTime" value='#[%dw 2.0 output application/json --- "2026-04-02T16:00:00.000Z"]' mediaType="application/json" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="mock sys app" doc:id="287d4436-c610-467f-b570-ac6c7bfbe32b" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="6c43052f-e3d1-40be-9b13-7da2a49f2829" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;readUrl('classpath:///sys/salesforce_contact_response.dwl')]" mediaType="application/json" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="mock amqp" doc:id="0f1e70f1-aae0-463a-b4ea-512f07e0be91" processor="amqp:publish">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="e399df9d-b1ab-47da-a2b2-28fe9a0fc40a" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="mock os" doc:id="2234d951-f522-4ab1-9c41-a458ea4746a8" processor="os:store">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="currentRunDateTime" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to abc-travels-email-notification-pub-flow" doc:id="edc8ac3d-d885-4a9a-8803-e33b48c5cc8e" name="abc-travels-email-notification-pub-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Exit" doc:id="d4d7eaaf-7ec0-4d39-9b49-55214a7ed75d" processor="flow-ref" atLeast="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="be50ac0c-ec4a-4af1-b550-4713dc61e7cd" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="email-notification-pub-proc-main-flow-test1" doc:id="0430ee96-b99c-44a7-9b6c-59511cd6a0d1" description="Test" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="mock os" doc:id="e9d391b3-e435-426d-8d20-df3c43be2a45" processor="os:retrieve" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="beaf27f4-f083-4cd6-8417-d5b986a5962c" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:variables >
+						<munit-tools:variable key="lastRunDateTime" value='#[%dw 2.0 output application/json --- "2026-04-02T16:00:00.000Z"]' mediaType="application/json" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="mock sys app" doc:id="ce7511cd-4e50-4b69-97f6-529b41d6b0e8" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="6c43052f-e3d1-40be-9b13-7da2a49f2829" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="HTTP:INTERNAL_SERVER_ERROR" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution>
+			<try doc:name="Try" doc:id="76987895-2680-4919-983f-de36b4a42f25" >
+				<flow-ref doc:name="Flow-ref to abc-travels-email-notification-pub-flow" doc:id="d55744f2-abf1-48e3-8c90-04110b2a5a2b" name="abc-travels-email-notification-pub-flow" />
+				<error-handler >
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="fa92c972-2af4-4bf0-ba63-3859dc8a9c19" >
+						<logger level="INFO" doc:name="Exception" doc:id="711debba-ccf5-4bc2-91f8-ab188760b8fa" />
+					</on-error-continue>
+				</error-handler>
+			</try>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Exit" doc:id="cb2a27a8-a9cb-44d8-ba02-d08ba4db7d33" processor="flow-ref" atLeast="1" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="20260424-c623-4510-883b-56974bcc3eb1" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>
