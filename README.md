@@ -39,4 +39,4 @@ This application runs on a scheduler and publishes Salesforce contact updates to
 - Error handling with global handler
 
 ## 🚀 Deployment
-- CloudHub
+- CloudHub 2.0
