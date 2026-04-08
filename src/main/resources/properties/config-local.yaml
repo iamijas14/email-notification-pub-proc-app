@@ -1,0 +1,16 @@
+#Salesforce sys api config
+sdfc-sys:
+  host: "localhost"
+  port: "8081"
+  path: "api/v1/contacts"
+  clientId: "dummy"
+  clientSecret: "dummy"
+
+#RabbitMq config
+rabbitmq:
+  host: "lionfish.rmq.cloudamqp.com"
+  port: "5671"
+  vhost: "xplbkkza"
+  username: "xplbkkza"
+  password: "dummy"
+  exchangeName: "abc-mulesoft-exchange"
